@@ -9,3 +9,7 @@ body {
     /* background-image: var(--wiggles-bg);
     overscroll-behavior-y: none; */
 }
+
+input {
+    @apply bg-gray-700
+}
