@@ -9,10 +9,11 @@ import React from 'react'
 const SCRYFALL_API = 'https://api.scryfall.com'
 
 
+
 export default function Home() {
   // const { data, isLoading } = trpc.useQuery(['hello', { text: "David"}])
+  const { data, isLoading } = trpc.useQuery(['find-all'])
 
-  const { data } = trpc.useQuery([''])
 
   const [cube, setCube] = useState<Array<string>>([])
   const [cardResults, setCardResults] = useState<Array<string>>([])
@@ -139,6 +140,21 @@ export default function Home() {
             ))
           }
 
+          {
+            isLoading ?
+              (<></>) : data?.map(({ cardName }, i) => (
+                <div key={i} className='flex'>
+                  {/* <span> */}
+                  <div>
+                    {cardName}
+                  </div>
+                  <span className='flex-grow' />
+                  {/* <span className="w-"></span> */}
+                  {/* <span className='flex-auto'></span> */}
+                  <button className="bg-gray-700" onClick={event => handleRemove(event, i)}>x</button>
+                </div>
+              ))
+          }
         </div>
       </div>
     </>
