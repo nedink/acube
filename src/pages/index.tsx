@@ -12,6 +12,8 @@ const SCRYFALL_API = 'https://api.scryfall.com'
 export default function Home() {
   // const { data, isLoading } = trpc.useQuery(['hello', { text: "David"}])
 
+  const { data } = trpc.useQuery([''])
+
   const [cube, setCube] = useState<Array<string>>([])
   const [cardResults, setCardResults] = useState<Array<string>>([])
   const [inputText, setInputText] = useState('')
