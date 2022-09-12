@@ -13,6 +13,7 @@ const SCRYFALL_API = 'https://api.scryfall.com'
 export default function Home() {
   // const { data, isLoading } = trpc.useQuery(['hello', { text: "David"}])
   const { data, isLoading } = trpc.useQuery(['find-all'])
+  const addMutation = trpc.useMutation('add-entry')
 
 
   const [cube, setCube] = useState<Array<string>>([])
@@ -97,10 +98,12 @@ export default function Home() {
     // select the hovered option
     if (event.key === 'Enter') {
       event.preventDefault()
+      const newCardName = cardResults[selected]
       setCube(c => [
         ...c,
-        cardResults[selected]
+        newCardName
       ])
+      addMutation.mutate({ cardName: newCardName })
       setInputText('')
     }
   }
