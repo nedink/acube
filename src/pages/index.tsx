@@ -4,61 +4,91 @@ import Head from 'next/head'
 import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import React from 'react'
+import { CubeEntry } from '@prisma/client'
 
 
 const SCRYFALL_API = 'https://api.scryfall.com'
 
 
-
+/**
+ * page load -> Query entries, set clientCube
+ * clientCube change -> query update
+ * 
+ * @returns 
+ */
 export default function Home() {
-  // const { data, isLoading } = trpc.useQuery(['hello', { text: "David"}])
-  const { data, isLoading } = trpc.useQuery(['find-all'])
-  const addMutation = trpc.useMutation('add-entry')
+  const findAllQuery = trpc.useQuery(['find-all'], {
+    // refetchInterval: 100,
+  })
+  const createEntryMutation = trpc.useMutation('create-entry')
+  const deleteEntryMutation = trpc.useMutation('delete-entry')
 
-
-  const [cube, setCube] = useState<Array<string>>([])
-  const [cardResults, setCardResults] = useState<Array<string>>([])
+  const [scryfallResult, setScryfallResult] = useState<Array<string>>([])
   const [inputText, setInputText] = useState('')
-  const [toFetch, setToFetch] = useState('')
-  const [readyToFetch, setReadyToFetch] = useState(true)
-  const [resultsCache, setResultsCache] = useState<{ [key: string]: Array<string> }>({})
+  const [requestText, setRequestText] = useState('')
+  const [readyToRequest, setReadyToRequest] = useState(true)
+  const [scryfallResultsCache, setResultsCache] = useState<{ [key: string]: Array<string> }>({})
   const [selected, setSelected] = useState(0)
+  // cube data as displayed to user
+  const [clientCube, setClientCube] = useState<Array<CubeEntry>>([])
+
   const inputRef: React.RefObject<HTMLInputElement> = useRef<HTMLInputElement>(null)
 
+  // focus search bar
   useEffect(() => {
     inputRef.current?.focus()
   }, [])
 
+  // page load -> Query entries, set clientCube
   useEffect(() => {
-    if (toFetch && resultsCache[toFetch]) {
-      setCardResults(resultsCache[toFetch])
+    setClientCube(findAllQuery.data || [])
+  }, [])
+
+  useEffect(() => {
+    console.log('fetching')
+  }, [findAllQuery.data])
+
+  // useEffect()
+
+  // useEffect(() => {
+  //   // setPersistedCube()
+  //   console.log('found all')
+  // }, [findAllQuery.data])
+
+  // useEffect(() => {
+  //   console.log(persistedCube)
+  // }, [persistedCube])
+
+  // autocomplete
+  useEffect(() => {
+    if (requestText && scryfallResultsCache[requestText]) {
+      setScryfallResult(scryfallResultsCache[requestText])
       return
     }
-    if (toFetch && readyToFetch) {
+    if (requestText && readyToRequest) {
       // add 100 ms
       setTimeout(() => {
-        setReadyToFetch(true)
-      }, 500)
+        setReadyToRequest(true)
+      }, 100)
       console.log('fetching scryfall - ' + Date.now().toString().slice(-4))
       // scryfall request
-      fetch(SCRYFALL_API + `/cards/autocomplete?q=${toFetch}`)
+      fetch(SCRYFALL_API + `/cards/autocomplete?q=${requestText}`)
         .then(res => res.json()).then(({ data }) => {
-          // data = data.length ? data : ['(No Results)']
-          setCardResults(data)
+          setScryfallResult(data)
           setResultsCache(prev => {
-            prev[toFetch] = data
+            prev[requestText] = data
             return prev
           })
         });
 
-      setToFetch('')
-      setReadyToFetch(false)
+      setRequestText('')
+      setReadyToRequest(false)
     }
-  }, [toFetch, readyToFetch])
+  }, [requestText, readyToRequest])
 
   useEffect(() => {
-    setToFetch(inputText)
-    setCardResults([])
+    setRequestText(inputText)
+    setScryfallResult([])
     setSelected(0)
   }, [inputText])
 
@@ -72,38 +102,41 @@ export default function Home() {
     setInputText(event.target.value)
   }
 
-  const handleRemove = (event: React.MouseEvent<HTMLButtonElement>, i: number) => {
+  const handleDelete = (event: React.MouseEvent<HTMLButtonElement>, id: string) => {
     event.preventDefault()
-    // const c = cube
-    // c.splice(i, 1)
-    setCube(c => [
-      ...c.slice(0, i),
-      ...c.slice(i + 1)
-    ])
+    deleteEntryMutation.mutate({
+      id: id
+    },
+      {
+        onSuccess({ success }) {
+
+        }
+      })
   }
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!cardResults.length) {
+    if (!scryfallResult.length) {
       return;
     }
     // change the hovered option
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      setSelected(selected => (selected + 1) % cardResults.length)
+      setSelected(selected => (selected + 1) % scryfallResult.length)
     }
     if (event.key === 'ArrowUp') {
       event.preventDefault()
-      setSelected(selected => (selected + cardResults.length - 1) % cardResults.length)
+      setSelected(selected => (selected + scryfallResult.length - 1) % scryfallResult.length)
     }
     // select the hovered option
     if (event.key === 'Enter') {
       event.preventDefault()
-      const newCardName = cardResults[selected]
-      setCube(c => [
-        ...c,
-        newCardName
-      ])
-      addMutation.mutate({ cardName: newCardName })
+      const newCardName = scryfallResult[selected]
+      createEntryMutation.mutate({
+        cardName: newCardName
+      })
+      // findAllQuery.refetch().then(res => setPersistedCube(res.data || []))
+      // const newData = await (await findAllQuery.refetch()).data
+      // setPersistedCube(newData || [])
       setInputText('')
     }
   }
@@ -114,7 +147,7 @@ export default function Home() {
         <div className='mr-8'>
           <input type="text" ref={inputRef} value={inputText} onChange={handleChange} onKeyDown={handleKeyDown} className="w-full focus:outline-none" />
           {
-            cardResults.map((r, i) => (
+            scryfallResult.map((r, i) => (
               <div key={i} className={i === selected ? 'bg-gray-500' : ''}>
                 {r}
               </div>
@@ -123,40 +156,24 @@ export default function Home() {
         </div>
 
         <div>
-          <div>
-            My Cube
+          <div className='flex'>
+            <span className='flex-grow'>My Cube</span>
+            <span className='text-gray-500'>{(createEntryMutation.isLoading || deleteEntryMutation.isLoading) ? '(Saving...)' : '(Saved)'}</span>
           </div>
           <br />
-
           {
-            cube.map((cardName, i) => (
-              <div key={i} className='flex'>
-                {/* <span> */}
-                <div>
+            findAllQuery.isLoading ? (
+              <div className='text-gray-500'>
+                Loading...
+              </div>
+            ) : clientCube.map(({ id, cardName }) => (
+              <div key={id} className='flex'>
+                <div className='flex-grow'>
                   {cardName}
                 </div>
-                <span className='flex-grow' />
-                {/* <span className="w-"></span> */}
-                {/* <span className='flex-auto'></span> */}
-                <button className="bg-gray-700" onClick={event => handleRemove(event, i)}>x</button>
+                <button className="bg-gray-700" onClick={event => handleDelete(event, id)}>x</button>
               </div>
             ))
-          }
-
-          {
-            isLoading ?
-              (<></>) : data?.map(({ cardName }, i) => (
-                <div key={i} className='flex'>
-                  {/* <span> */}
-                  <div>
-                    {cardName}
-                  </div>
-                  <span className='flex-grow' />
-                  {/* <span className="w-"></span> */}
-                  {/* <span className='flex-auto'></span> */}
-                  <button className="bg-gray-700" onClick={event => handleRemove(event, i)}>x</button>
-                </div>
-              ))
           }
         </div>
       </div>
