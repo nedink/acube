@@ -7,14 +7,14 @@ function MyApp({ Component, pageProps }: AppProps) {
   return <Component {...pageProps} />
 }
 
-import { withTRPC } from '@trpc/next'
-import type { AppRouter } from '@/backend/rounter'
+import { withTRPC } from "@trpc/next";
+import type { AppRouter } from "@/backend/router";
 
 function getBaseUrl() {
-  if (typeof window === 'undefined') return "" // browser should use current path
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}/api/trpc` // SSR should use vercel url
+  if (process.browser) return ""; // Browser should use current path
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`; // SSR should use vercel url
 
-  return `http://localhost:${process.env.PORT ?? 3000}` // dev SSR should use localhost
+  return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
 }
 
 export default withTRPC<AppRouter>({
@@ -24,6 +24,7 @@ export default withTRPC<AppRouter>({
      * @link https://trpc.io/docs/ssr
      */
     const url = `${getBaseUrl()}/api/trpc`;
+
     return {
       url,
       /**
