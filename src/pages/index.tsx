@@ -23,7 +23,6 @@ export default function Home() {
   
   console.log(process.env.VERCEL_URL)
   console.log(process.env.NEXT_PUBLIC_VERCEL_URL)
-  console.log(process.env.VERCEL_ENV)
   
   const createEntryMutation = trpc.useMutation('create-entry')
   const deleteEntryMutation = trpc.useMutation('delete-entry')
@@ -45,9 +44,15 @@ export default function Home() {
   }, [])
 
   // page load -> Query entries, set clientCube
-  useEffect(() => {
-    setClientCube(findAllQuery.data || [])
-  }, [])
+  // useEffect(() => {
+  //   setClientCube(findAllQuery.data || [])
+  //   // console.log(clientCube)
+  // }, [])
+
+  // useEffect(() => {
+  //   console.log(clientCube)
+  //   console.log(findAllQuery.data)
+  // }, [clientCube])
 
   // autocomplete
   useEffect(() => {
@@ -169,7 +174,7 @@ export default function Home() {
               <div className='text-gray-500'>
                 Loading...
               </div>
-            ) : clientCube.map(({ id, cardName }, i) => (
+            ) : findAllQuery.data?.map(({ id, cardName }, i) => (
               <div key={i} className='flex'>
                 <div className='flex-grow'>
                   {cardName}
