@@ -20,7 +20,11 @@ export default function Home() {
   const findAllQuery = trpc.useQuery(['find-all'], {
     // refetchInterval: 100,
   })
+  
   console.log(process.env.VERCEL_URL)
+  console.log(process.env.NEXT_PUBLIC_VERCEL_URL)
+  console.log(process.env.VERCEL_ENV)
+  
   const createEntryMutation = trpc.useMutation('create-entry')
   const deleteEntryMutation = trpc.useMutation('delete-entry')
 
