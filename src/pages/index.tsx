@@ -44,21 +44,6 @@ export default function Home() {
     setClientCube(findAllQuery.data || [])
   }, [])
 
-  useEffect(() => {
-    console.log('fetching')
-  }, [findAllQuery.data])
-
-  // useEffect()
-
-  // useEffect(() => {
-  //   // setPersistedCube()
-  //   console.log('found all')
-  // }, [findAllQuery.data])
-
-  // useEffect(() => {
-  //   console.log(persistedCube)
-  // }, [persistedCube])
-
   // autocomplete
   useEffect(() => {
     if (requestText && scryfallResultsCache[requestText]) {
@@ -70,7 +55,7 @@ export default function Home() {
       setTimeout(() => {
         setReadyToRequest(true)
       }, 100)
-      console.log('fetching scryfall - ' + Date.now().toString().slice(-4))
+      console.log('Fetching Scryfall - ' + Date.now().toString().slice(-4))
       // scryfall request
       fetch(SCRYFALL_API + `/cards/autocomplete?q=${requestText}`)
         .then(res => res.json()).then(({ data }) => {
@@ -85,6 +70,7 @@ export default function Home() {
       setReadyToRequest(false)
     }
   }, [requestText, readyToRequest])
+
 
   useEffect(() => {
     setRequestText(inputText)
@@ -102,16 +88,21 @@ export default function Home() {
     setInputText(event.target.value)
   }
 
-  const handleDelete = (event: React.MouseEvent<HTMLButtonElement>, id: string) => {
+  const handleDelete = (event: React.MouseEvent<HTMLButtonElement>, id: string, i: number) => {
     event.preventDefault()
+    // event.currentTarget.disabled = true
     deleteEntryMutation.mutate({
       id: id
     },
       {
-        onSuccess({ success }) {
-
+        onSuccess({ success, entry }) {
+          setClientCube(c => [
+            ...c.slice(0, i),
+            ...c.slice(i + 1)
+          ])
         }
-      })
+      }
+    )
   }
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -131,9 +122,16 @@ export default function Home() {
     if (event.key === 'Enter') {
       event.preventDefault()
       const newCardName = scryfallResult[selected]
+      // update db
       createEntryMutation.mutate({
         cardName: newCardName
       })
+      // add to visual right away
+      setClientCube(c => [...c, {
+        cardName: newCardName,
+        id: ''
+      }])
+
       // findAllQuery.refetch().then(res => setPersistedCube(res.data || []))
       // const newData = await (await findAllQuery.refetch()).data
       // setPersistedCube(newData || [])
@@ -166,12 +164,12 @@ export default function Home() {
               <div className='text-gray-500'>
                 Loading...
               </div>
-            ) : clientCube.map(({ id, cardName }) => (
-              <div key={id} className='flex'>
+            ) : clientCube.map(({ id, cardName }, i) => (
+              <div key={i} className='flex'>
                 <div className='flex-grow'>
                   {cardName}
                 </div>
-                <button className="bg-gray-700" onClick={event => handleDelete(event, id)}>x</button>
+                <button disabled={createEntryMutation.isLoading} className="bg-gray-700" onClick={event => handleDelete(event, id, i)}>x</button>
               </div>
             ))
           }
