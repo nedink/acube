@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import React from 'react'
 import { CubeEntry } from '@prisma/client'
+import { DndProvider, useDrag } from 'react-dnd'
 
 
 const SCRYFALL_API = 'https://api.scryfall.com'
@@ -17,7 +18,7 @@ const SCRYFALL_API = 'https://api.scryfall.com'
  * @returns 
  */
 export default function Home() {
-  const findAllQuery = trpc.useQuery(['find-all'], {
+  const { data, isLoading, error } = trpc.useQuery(['find-all'], {
     // refetchInterval: 100,
   })
   
@@ -43,16 +44,11 @@ export default function Home() {
     inputRef.current?.focus()
   }, [])
 
-  // page load -> Query entries, set clientCube
-  // useEffect(() => {
-  //   setClientCube(findAllQuery.data || [])
-  //   // console.log(clientCube)
-  // }, [])
-
-  // useEffect(() => {
-  //   console.log(clientCube)
-  //   console.log(findAllQuery.data)
-  // }, [clientCube])
+  // when data is retrieved from server, update client
+  useEffect(() => {
+    setClientCube(data || [])
+    console.log('setting client cube ' + `${data}`)
+  }, [data])
 
   // autocomplete
   useEffect(() => {
@@ -92,13 +88,15 @@ export default function Home() {
     console.log(selected)
   }, [selected])
 
+
   // --------
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+
+  function handleChange(event: React.ChangeEvent<HTMLInputElement>) {
     setInputText(event.target.value)
   }
 
-  const handleDelete = (event: React.MouseEvent<HTMLButtonElement>, id: string, i: number) => {
+  function handleDelete(event: React.MouseEvent<HTMLButtonElement>, id: string, i: number) {
     event.preventDefault()
     // event.currentTarget.disabled = true
     deleteEntryMutation.mutate({
@@ -115,7 +113,7 @@ export default function Home() {
     )
   }
 
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (!scryfallResult.length) {
       return;
     }
@@ -128,7 +126,7 @@ export default function Home() {
       event.preventDefault()
       setSelected(selected => (selected + scryfallResult.length - 1) % scryfallResult.length)
     }
-    // select the hovered option
+    // enter what's in the input box. if it's in the list, use the list name (immediate) otherwise, make call as name of card
     if (event.key === 'Enter') {
       event.preventDefault()
       const newCardName = scryfallResult[selected]
@@ -147,6 +145,22 @@ export default function Home() {
       // setPersistedCube(newData || [])
       setInputText('')
     }
+  }
+
+  function handleDragStart(event: React.DragEvent<HTMLDivElement>) {
+    event.dataTransfer.setData('text', event.currentTarget.id);
+  }
+
+  const enableDropping = (event: React.DragEvent<HTMLDivElement>) => { 
+    event.preventDefault();
+    // console.log(`${event.clientX}, ${event.clientY}`)
+    // event.clientX
+    event.currentTarget.classList.add('border-gray-700', 'border-2')
+  }
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    const id = event.dataTransfer.getData('text');
+    console.log(`Somebody dropped an element with id: ${id}`);
   }
 
   return (
@@ -170,21 +184,27 @@ export default function Home() {
           </div>
           <br />
           {
-            findAllQuery.isLoading ? (
+            isLoading ? (
               <div className='text-gray-500'>
                 Loading...
               </div>
-            ) : findAllQuery.data?.map(({ id, cardName }, i) => (
-              <div key={i} className='flex'>
+            ) : clientCube.map(({ id, cardName }, i) => (
+              <div draggable={true} onDragStart={handleDragStart} onDragOver={enableDropping} onDrop={handleDrop} key={i} className='flex border-gray-700' id={`card-${cardName}`}>
                 <div className='flex-grow'>
                   {cardName}
                 </div>
-                <button disabled={createEntryMutation.isLoading} className="bg-gray-700" onClick={event => handleDelete(event, id, i)}>x</button>
+                <button 
+                  disabled={createEntryMutation.isLoading}
+                  className="w-20 bg-gray-700 border-gray-700 hover:bg-slate-600" 
+                  onClick={event => handleDelete(event, id, i)}>
+                  x
+                </button>
               </div>
             ))
           }
         </div>
       </div>
+ 
     </>
   )
 }
