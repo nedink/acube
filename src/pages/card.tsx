@@ -12,15 +12,15 @@ import { any, number } from 'zod'
 export default function Card() {
 
 
-    const [{ isDragging }, drag] = useDrag({
-        type: "image",
-        item: () => {
-          return { id: number, index: number }
-        },
-        collect: (monitor: any) => ({
-          isDragging: monitor.isDragging(),
-        }),
-      })
+    // const [{ isDragging }, drag] = useDrag({
+    //     type: "image",
+    //     item: () => {
+    //       return { id: number, index: number }
+    //     },
+    //     collect: (monitor: any) => ({
+    //       isDragging: monitor.isDragging(),
+    //     }),
+    //   })
 
 //   return (
 //     <div ref={dragRef} style={{ opacity }}>
